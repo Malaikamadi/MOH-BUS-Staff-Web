@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { userFromToken } from "@/server/auth";
 import { HttpError } from "@/server/errors";
 import { conductorFromToken } from "@/server/scan";
-import type { Conductor } from "@/types";
+import type { Conductor, UserRole } from "@/types";
 import type { User as DbUser } from "@prisma/client";
 
 export const corsHeaders = {
@@ -51,6 +51,15 @@ export function isHttpError(value: Conductor | DbUser | NextResponse): value is 
   return value instanceof NextResponse;
 }
 
+export async function requireRoles(request: Request, roles: UserRole[]): Promise<DbUser | NextResponse> {
+  const user = await requireUser(request);
+  if (isHttpError(user)) return user;
+  if (!roles.includes(user.role)) {
+    return json({ message: "You do not have access to this desk." }, 403);
+  }
+  return user;
+}
+
 export async function readJson<T>(request: Request): Promise<T> {
   try {
     return (await request.json()) as T;
@@ -59,10 +68,12 @@ export async function readJson<T>(request: Request): Promise<T> {
   }
 }
 
+type RouteContext = { params: Promise<Record<string, string>> };
+
 export function withHandler(
-  handler: (request: Request, context?: { params: Promise<Record<string, string>> }) => Promise<Response>,
+  handler: (request: Request, context?: RouteContext) => Promise<Response>,
 ) {
-  return async (request: Request, context?: { params: Promise<Record<string, string>> }) => {
+  return async (request: Request, context?: RouteContext) => {
     try {
       return await handler(request, context);
     } catch (error) {
@@ -73,4 +84,15 @@ export function withHandler(
       return json({ ok: false, message: "Unable to complete this request." }, 500);
     }
   };
+}
+
+export function withRoles(
+  roles: UserRole[],
+  handler: (request: Request, user: DbUser, context?: RouteContext) => Promise<Response>,
+) {
+  return withHandler(async (request, context) => {
+    const user = await requireRoles(request, roles);
+    if (isHttpError(user)) return user;
+    return handler(request, user, context);
+  });
 }

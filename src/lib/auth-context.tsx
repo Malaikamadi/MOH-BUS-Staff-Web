@@ -4,8 +4,9 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { routes } from "@/config/routes";
+import { canAccessAdmin, canAccessOffice, canAccessPortal, canAccessSuperAdmin, homeFor } from "@/lib/roles";
 import { clearSession, login, logout, readSession, register } from "@/services/auth.service";
-import type { AuthSession, LoginCredentials, RegistrationPayload, UserRole } from "@/types";
+import type { AuthSession, LoginCredentials, RegistrationPayload } from "@/types";
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -16,10 +17,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-function homeFor(role: UserRole) {
-  return role === "admin" ? routes.admin.dashboard : routes.portal.dashboard;
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
@@ -34,20 +31,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
+    const isSuper = pathname.startsWith("/super-admin");
     const isAdmin = pathname.startsWith("/admin");
+    const isOffice = pathname.startsWith("/office");
     const isPortal = pathname.startsWith("/portal");
-    if (!isAdmin && !isPortal) return;
+    if (!isSuper && !isAdmin && !isOffice && !isPortal) return;
 
     if (!session) {
       router.replace(`${routes.login}?next=${encodeURIComponent(pathname)}`);
       return;
     }
-    if (isAdmin && session.user.role !== "admin") {
-      router.replace(routes.portal.dashboard);
-    }
-    if (isPortal && session.user.role === "admin") {
-      router.replace(routes.admin.dashboard);
-    }
+
+    const role = session.user.role;
+    if (isSuper && !canAccessSuperAdmin(role)) router.replace(homeFor(role));
+    if (isAdmin && !canAccessAdmin(role)) router.replace(homeFor(role));
+    if (isOffice && !canAccessOffice(role)) router.replace(homeFor(role));
+    if (isPortal && !canAccessPortal(role)) router.replace(homeFor(role));
   }, [loading, pathname, router, session]);
 
   const value = useMemo<AuthContextValue>(

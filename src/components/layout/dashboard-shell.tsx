@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   BusFront,
+  Building2,
   ClipboardList,
   CreditCard,
   LayoutDashboard,
@@ -14,6 +15,7 @@ import {
   QrCode,
   Route,
   Settings,
+  Shield,
   Ticket,
   Users,
   UserRound,
@@ -58,21 +60,61 @@ const portalNav: NavItem[] = [
   { label: "Profile", href: routes.portal.profile, icon: UserRound },
 ];
 
+const superAdminNav: NavItem[] = [
+  { label: "Overview", href: routes.superAdmin.dashboard, icon: Shield },
+  { label: "Operators", href: routes.superAdmin.operators, icon: Users },
+  { label: "Head office recharges", href: routes.superAdmin.recharges, icon: Wallet },
+  { label: "Operations", href: routes.admin.dashboard, icon: LayoutDashboard },
+];
+
+const officeNav: NavItem[] = [
+  { label: "Recharge desk", href: routes.office.dashboard, icon: Building2 },
+  { label: "Today & history", href: routes.office.history, icon: ClipboardList },
+];
+
+const titles = {
+  admin: "Operations",
+  portal: "Staff portal",
+  "super-admin": "Super administration",
+  office: "Head office recharge desk",
+} as const;
+
 export function DashboardShell({
   variant,
   children,
 }: {
-  variant: "admin" | "portal";
+  variant: "admin" | "portal" | "super-admin" | "office";
   children: React.ReactNode;
 }) {
   const { session, signOut } = useAuth();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const items = variant === "admin" ? adminNav : portalNav;
+  const items =
+    variant === "admin"
+      ? adminNav
+      : variant === "portal"
+        ? portalNav
+        : variant === "super-admin"
+          ? superAdminNav
+          : officeNav;
+
+  const home =
+    variant === "admin"
+      ? routes.admin.dashboard
+      : variant === "portal"
+        ? routes.portal.dashboard
+        : variant === "super-admin"
+          ? routes.superAdmin.dashboard
+          : routes.office.dashboard;
 
   const isActive = (href: string) => {
-    if (href === routes.admin.dashboard || href === routes.portal.dashboard) {
+    if (
+      href === routes.admin.dashboard ||
+      href === routes.portal.dashboard ||
+      href === routes.superAdmin.dashboard ||
+      href === routes.office.dashboard
+    ) {
       return pathname === href;
     }
     return pathname === href || pathname.startsWith(`${href}/`);
@@ -113,7 +155,7 @@ export function DashboardShell({
         )}
       >
         <div className="flex h-16 items-center justify-between gap-2 border-b border-border-subtle px-3">
-          <Link href={variant === "admin" ? routes.admin.dashboard : routes.portal.dashboard}>
+          <Link href={home}>
             <Logo markOnly={collapsed} />
           </Link>
           <button
@@ -160,9 +202,7 @@ export function DashboardShell({
             >
               <Menu className="size-4" />
             </Button>
-            <p className="text-sm font-semibold text-ink-900">
-              {variant === "admin" ? "Administration" : "Staff portal"}
-            </p>
+            <p className="text-sm font-semibold text-ink-900">{titles[variant]}</p>
           </div>
 
           <div className="flex items-center gap-3">

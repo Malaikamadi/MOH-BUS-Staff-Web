@@ -34,7 +34,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       title="Sign in"
-      subtitle="Use your ministry staff or administrator credentials."
+      subtitle="Use your ministry staff, head-office, or administrator credentials."
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <Input
@@ -74,7 +74,13 @@ export default function LoginPage() {
         <div className="mt-8 rounded-xl border border-border-subtle bg-surface-muted p-4 text-xs text-ink-600">
           <p className="font-semibold text-ink-800">Demo accounts</p>
           <p className="mt-2">
-            Administrator · {demoCredentials.admin.email} · {demoCredentials.admin.password}
+            Super administrator · {demoCredentials.superAdmin.email} · {demoCredentials.superAdmin.password}
+          </p>
+          <p className="mt-1">
+            Operations administrator · {demoCredentials.admin.email} · {demoCredentials.admin.password}
+          </p>
+          <p className="mt-1">
+            Head office recharge clerk · {demoCredentials.officer.email} · {demoCredentials.officer.password}
           </p>
           <p className="mt-1">
             Staff · {demoCredentials.staff.email} · {demoCredentials.staff.password}
