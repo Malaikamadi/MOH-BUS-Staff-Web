@@ -21,7 +21,7 @@ export function canAccessAdmin(role: UserRole) {
 }
 
 export function canAccessOffice(role: UserRole) {
-  return role === "officer" || role === "admin" || role === "super_admin";
+  return role === "officer" || role === "super_admin";
 }
 
 export function canRechargeWallets(role: UserRole) {

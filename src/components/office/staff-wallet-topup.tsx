@@ -127,7 +127,7 @@ export function StaffWalletTopUp({
         {error && <p className="text-sm text-danger-500">{error}</p>}
         {message && <p className="text-sm text-success-700">{message}</p>}
         <Button disabled={selectedAmount < 5} loading={loading} onClick={() => void confirm()}>
-          Credit {formatCurrency(selectedAmount, { whole: selectedAmount % 1 === 0 })}
+          Credit {formatCurrency(selectedAmount)}
         </Button>
       </CardContent>
     </Card>

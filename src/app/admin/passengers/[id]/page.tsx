@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { StaffWalletTopUp } from "@/components/office/staff-wallet-topup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -86,29 +87,32 @@ export default function StaffDetailPage() {
       </div>
 
       {tab === "Overview" && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardContent>
-              <p className="text-xs uppercase tracking-[0.12em] text-ink-500">Wallet</p>
-              <p className="mt-2 font-display text-2xl font-semibold" data-numeric>
-                {formatCurrency(account.balance)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <p className="text-xs uppercase tracking-[0.12em] text-ink-500">Trips</p>
-              <p className="mt-2 font-display text-2xl font-semibold">{stats.totalTrips}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <p className="text-xs uppercase tracking-[0.12em] text-ink-500">Status</p>
-              <div className="mt-3">
-                <StatusBadge status={passenger.status} />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent>
+                <p className="text-xs uppercase tracking-[0.12em] text-ink-500">Wallet</p>
+                <p className="mt-2 font-display text-2xl font-semibold" data-numeric>
+                  {formatCurrency(account.balance)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <p className="text-xs uppercase tracking-[0.12em] text-ink-500">Trips</p>
+                <p className="mt-2 font-display text-2xl font-semibold">{stats.totalTrips}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <p className="text-xs uppercase tracking-[0.12em] text-ink-500">Status</p>
+                <div className="mt-3">
+                  <StatusBadge status={passenger.status} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <StaffWalletTopUp staffName={passenger.name} account={account} onCredited={() => load()} />
         </div>
       )}
 

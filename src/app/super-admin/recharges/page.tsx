@@ -17,16 +17,18 @@ export default function SuperAdminRechargesPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Paginated<Transaction> | null>(null);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
     void listHeadOfficeRecharges({ page, search }).then(setData);
-  }, [page, search]);
+  }, [page, search, refresh]);
 
   return (
     <div className="space-y-10">
       <WalletRechargeDesk
         title="Recharge a staff wallet"
         description="Look up the staff member, enter the amount they paid, and credit their transit account. The same QR stays active."
+        onCompleted={() => setRefresh((value) => value + 1)}
       />
 
       <div className="space-y-6">

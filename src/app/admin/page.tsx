@@ -7,6 +7,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recha
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ButtonLink } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import { getAdminDashboard } from "@/services/admin.service";
 import type { AdminDashboardData } from "@/types";
@@ -36,6 +37,7 @@ export default function AdminDashboardPage() {
       <PageHeader
         title="Operations dashboard"
         description="Live view of staff travel, wallet activity and network performance."
+        actions={<ButtonLink href={routes.admin.recharge}>Recharge a wallet</ButtonLink>}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

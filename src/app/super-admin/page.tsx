@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ButtonLink } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import { getSuperAdminDashboard } from "@/services/super-admin.service";
 import type { SuperAdminDashboard } from "@/types";
@@ -36,6 +37,7 @@ export default function SuperAdminDashboardPage() {
       <PageHeader
         title="Super administration"
         description="Control operators, head-office wallet top-ups, and the shared transport database."
+        actions={<ButtonLink href={routes.superAdmin.recharges}>Recharge a wallet</ButtonLink>}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -78,7 +80,7 @@ export default function SuperAdminDashboardPage() {
           <CardHeader>
             <CardTitle>Latest head-office recharges</CardTitle>
             <Link href={routes.superAdmin.recharges} className="text-sm font-medium text-brand-700">
-              View all
+              Recharge / history
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">

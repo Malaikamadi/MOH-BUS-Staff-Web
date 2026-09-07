@@ -26,9 +26,11 @@ export const deskPaymentMethods: { id: OfficeRechargeRequest["method"]; label: s
 export function WalletRechargeDesk({
   title,
   description,
+  onCompleted,
 }: {
   title: string;
   description: string;
+  onCompleted?: () => void;
 }) {
   const [step, setStep] = useState<Step>("Lookup");
   const [query, setQuery] = useState("");
@@ -107,6 +109,7 @@ export function WalletRechargeDesk({
       });
       setDashboard(await getOfficeDashboard());
       setStep("Done");
+      onCompleted?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment could not be confirmed.");
     } finally {

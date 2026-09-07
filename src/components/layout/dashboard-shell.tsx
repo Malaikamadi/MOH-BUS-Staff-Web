@@ -64,7 +64,7 @@ const portalNav: NavItem[] = [
 const superAdminNav: NavItem[] = [
   { label: "Overview", href: routes.superAdmin.dashboard, icon: Shield },
   { label: "Operators", href: routes.superAdmin.operators, icon: Users },
-  { label: "Head office recharges", href: routes.superAdmin.recharges, icon: Wallet },
+  { label: "Recharge wallet", href: routes.superAdmin.recharges, icon: Wallet },
   { label: "Operations", href: routes.admin.dashboard, icon: LayoutDashboard },
 ];
 
@@ -91,9 +91,12 @@ export function DashboardShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const role = session?.user.role;
   const items =
     variant === "admin"
-      ? adminNav
+      ? role === "super_admin"
+        ? [{ label: "Super administration", href: routes.superAdmin.dashboard, icon: Shield }, ...adminNav]
+        : adminNav
       : variant === "portal"
         ? portalNav
         : variant === "super-admin"
