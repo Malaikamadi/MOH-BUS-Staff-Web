@@ -33,10 +33,13 @@ export function persistSession(session: AuthSession) {
 export function readSession(): AuthSession | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(appConfig.session.storageKey);
-  if (!raw) return null;
+  if (!raw) {
+    document.cookie = `${SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+    return null;
+  }
   try {
     const session = JSON.parse(raw) as AuthSession;
-    if (new Date(session.expiresAt).getTime() <= Date.now()) {
+    if (!session.accessToken || new Date(session.expiresAt).getTime() <= Date.now()) {
       clearSession();
       return null;
     }

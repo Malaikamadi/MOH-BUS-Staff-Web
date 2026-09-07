@@ -28,11 +28,12 @@ export default function RechargePage() {
   const [newBalance, setNewBalance] = useState<number | null>(null);
 
   useEffect(() => {
-    void Promise.all([getCurrentStaffProfile(session?.user.email), listPaymentMethods()]).then(([profile, list]) => {
+    if (!session) return;
+    void Promise.all([getCurrentStaffProfile(session.user.email), listPaymentMethods()]).then(([profile, list]) => {
       setAccount(profile.account);
       setMethods(list.filter((item) => item.enabled));
     });
-  }, [session?.user.email]);
+  }, [session]);
 
   const selected = Number(custom) > 0 ? Number(custom) : amount;
   const selectedMethod = methods.find((item) => item.id === method);

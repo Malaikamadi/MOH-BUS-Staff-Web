@@ -47,7 +47,9 @@ export function WalletRechargeDesk({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    void getOfficeDashboard().then(setDashboard);
+    void getOfficeDashboard()
+      .then(setDashboard)
+      .catch(() => undefined);
   }, []);
 
   const selectedAmount = Number(custom) > 0 ? Number(custom) : amount;

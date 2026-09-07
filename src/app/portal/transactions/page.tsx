@@ -24,8 +24,9 @@ export default function PortalTransactionsPage() {
   const [passengerId, setPassengerId] = useState<string | null>(null);
 
   useEffect(() => {
-    void getCurrentStaffProfile(session?.user.email).then((profile) => setPassengerId(profile.passenger.id));
-  }, [session?.user.email]);
+    if (!session) return;
+    void getCurrentStaffProfile(session.user.email).then((profile) => setPassengerId(profile.passenger.id));
+  }, [session]);
 
   useEffect(() => {
     if (!passengerId) return;

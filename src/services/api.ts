@@ -33,6 +33,15 @@ function clientToken() {
   }
 }
 
+const AUTH_EXCHANGE = new Set(["/auth/login", "/auth/logout", "/auth/register", "/auth/forgot-password", "/auth/reset-password"]);
+
+function expireBrowserSession() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(appConfig.session.storageKey);
+  document.cookie = `${appConfig.session.cookieName}=; Path=/; Max-Age=0; SameSite=Lax`;
+  window.dispatchEvent(new Event("transitpay:unauthorized"));
+}
+
 /**
  * Central HTTP client used by the web app. The Flutter conductor app talks to
  * the same `/api/v1` origin against the local Postgres database.
@@ -61,12 +70,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
     if (!response.ok) {
       const error = (data ?? {}) as Partial<ApiErrorPayload>;
-      throw new ApiError({
+      const apiError = new ApiError({
         message: error.message ?? `Request failed with status ${response.status}`,
         status: response.status,
         code: error.code,
         fieldErrors: error.fieldErrors,
       });
+      if (response.status === 401 && !AUTH_EXCHANGE.has(path.split("?")[0] ?? path)) {
+        expireBrowserSession();
+        return new Promise<T>(() => undefined);
+      }
+      throw apiError;
     }
 
     return data as T;

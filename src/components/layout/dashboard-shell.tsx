@@ -87,7 +87,7 @@ export function DashboardShell({
   variant: "admin" | "portal" | "super-admin" | "office";
   children: React.ReactNode;
 }) {
-  const { session, signOut } = useAuth();
+  const { session, loading, signOut } = useAuth();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -223,7 +223,15 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          {loading ? (
+            <p className="text-sm text-foreground-muted">Loading session…</p>
+          ) : session ? (
+            children
+          ) : (
+            <p className="text-sm text-foreground-muted">Redirecting to sign in…</p>
+          )}
+        </main>
       </div>
     </div>
   );

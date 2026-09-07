@@ -30,6 +30,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    function onUnauthorized() {
+      setSession(null);
+      const path = window.location.pathname;
+      if (path.startsWith("/login")) return;
+      router.replace(`${routes.login}?next=${encodeURIComponent(path)}`);
+    }
+    window.addEventListener("transitpay:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("transitpay:unauthorized", onUnauthorized);
+  }, [router]);
+
+  useEffect(() => {
     if (loading) return;
     const isSuper = pathname.startsWith("/super-admin");
     const isAdmin = pathname.startsWith("/admin");
@@ -66,8 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return next;
       },
       async signOut() {
-        await logout();
         setSession(null);
+        await logout();
         router.replace(routes.login);
       },
     }),

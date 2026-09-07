@@ -15,8 +15,9 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<PassengerDetail | null>(null);
 
   useEffect(() => {
-    void getCurrentStaffProfile(session?.user.email).then(setProfile);
-  }, [session?.user.email]);
+    if (!session) return;
+    void getCurrentStaffProfile(session.user.email).then(setProfile);
+  }, [session]);
 
   if (!profile) return <p className="text-sm text-foreground-muted">Loading profile…</p>;
 

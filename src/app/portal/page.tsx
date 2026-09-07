@@ -23,7 +23,8 @@ export default function PortalDashboardPage() {
   const [staffTrips, setStaffTrips] = useState<Trip[]>([]);
 
   useEffect(() => {
-    void getCurrentStaffProfile(session?.user.email).then(async (next) => {
+    if (!session) return;
+    void getCurrentStaffProfile(session.user.email).then(async (next) => {
       setProfile(next);
       const [txnPage, tripPage] = await Promise.all([
         listStaffTransactions(next.passenger.id, { pageSize: 5 }),
@@ -32,7 +33,7 @@ export default function PortalDashboardPage() {
       setTxns(txnPage.items);
       setStaffTrips(tripPage.items);
     });
-  }, [session?.user.email]);
+  }, [session]);
 
   if (!profile) return <p className="text-sm text-foreground-muted">Loading your account…</p>;
 
