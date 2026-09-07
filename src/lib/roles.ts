@@ -14,12 +14,18 @@ export function homeFor(role: UserRole) {
   }
 }
 
+export const walletDeskRoles: UserRole[] = ["officer", "admin", "super_admin"];
+
 export function canAccessAdmin(role: UserRole) {
   return role === "admin" || role === "super_admin";
 }
 
 export function canAccessOffice(role: UserRole) {
-  return role === "officer" || role === "super_admin";
+  return role === "officer" || role === "admin" || role === "super_admin";
+}
+
+export function canRechargeWallets(role: UserRole) {
+  return walletDeskRoles.includes(role);
 }
 
 export function canAccessSuperAdmin(role: UserRole) {

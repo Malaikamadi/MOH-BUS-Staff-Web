@@ -1,4 +1,5 @@
 import { json, options, withRoles } from "@/app/api/v1/_lib";
+import { walletDeskRoles } from "@/lib/roles";
 import { searchOfficeStaff } from "@/server/office";
 
 export const dynamic = "force-dynamic";

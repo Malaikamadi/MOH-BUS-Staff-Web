@@ -8,6 +8,7 @@ export const routes = {
 
   admin: {
     dashboard: "/admin",
+    recharge: "/admin/recharge",
     passengers: "/admin/passengers",
     passenger: (id: string) => `/admin/passengers/${id}`,
     qrAccounts: "/admin/qr-accounts",

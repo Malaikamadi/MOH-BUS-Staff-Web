@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { WalletRechargeDesk } from "@/components/office/wallet-recharge-desk";
 import { Card } from "@/components/ui/card";
 import { DataTable, Pagination } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
@@ -22,40 +23,47 @@ export default function SuperAdminRechargesPage() {
   }, [page, search]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Head office recharges"
-        description="Every wallet top-up processed at Youyi Building, attributed to the clerk who took the payment."
+    <div className="space-y-10">
+      <WalletRechargeDesk
+        title="Recharge a staff wallet"
+        description="Look up the staff member, enter the amount they paid, and credit their transit account. The same QR stays active."
       />
-      <Card>
-        <div className="border-b border-border-subtle p-4">
-          <Input
-            placeholder="Search staff, clerk or reference"
-            value={search}
-            onChange={(event) => {
-              setPage(1);
-              setSearch(event.target.value);
-            }}
-          />
-        </div>
-        <DataTable
-          data={data?.items ?? []}
-          rowKey={(row) => row.id}
-          columns={[
-            { key: "createdAt", header: "When", render: (row) => formatDateTime(row.createdAt) },
-            { key: "passengerName", header: "Staff" },
-            { key: "processedByName", header: "Clerk", render: (row) => row.processedByName ?? "—" },
-            {
-              key: "amount",
-              header: "Amount",
-              className: "text-right",
-              render: (row) => formatCurrency(row.amount, { signed: true }),
-            },
-            { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
-          ]}
+
+      <div className="space-y-6">
+        <PageHeader
+          title="Recharge history"
+          description="Every wallet top-up processed at Youyi Building, attributed to the clerk or administrator who took the payment."
         />
-        {data && <Pagination page={data.page} totalPages={data.totalPages} onPageChange={setPage} />}
-      </Card>
+        <Card>
+          <div className="border-b border-border-subtle p-4">
+            <Input
+              placeholder="Search staff, clerk or reference"
+              value={search}
+              onChange={(event) => {
+                setPage(1);
+                setSearch(event.target.value);
+              }}
+            />
+          </div>
+          <DataTable
+            data={data?.items ?? []}
+            rowKey={(row) => row.id}
+            columns={[
+              { key: "createdAt", header: "When", render: (row) => formatDateTime(row.createdAt) },
+              { key: "passengerName", header: "Staff" },
+              { key: "processedByName", header: "Processed by", render: (row) => row.processedByName ?? "—" },
+              {
+                key: "amount",
+                header: "Amount",
+                className: "text-right",
+                render: (row) => formatCurrency(row.amount, { signed: true }),
+              },
+              { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
+            ]}
+          />
+          {data && <Pagination page={data.page} totalPages={data.totalPages} onPageChange={setPage} />}
+        </Card>
+      </div>
     </div>
   );
 }
