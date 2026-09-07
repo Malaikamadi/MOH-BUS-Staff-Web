@@ -23,6 +23,9 @@ export interface Transaction {
   /** Present when the transaction was produced by a trip. */
   tripId?: ID;
   failureReason?: string;
+  /** Set when a head-office clerk or administrator processed the top-up. */
+  processedByUserId?: ID;
+  processedByName?: string;
   createdAt: ISODateString;
 }
 
@@ -39,6 +42,7 @@ export interface RechargeRequest {
   accountId: ID;
   amount: number;
   method: PaymentMethodId;
+  note?: string;
 }
 
 export interface RechargeResult {

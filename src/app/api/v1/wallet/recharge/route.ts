@@ -12,5 +12,5 @@ export const POST = withHandler(async (request) => {
   const user = await requireUser(request);
   if (isHttpError(user)) return user;
   const body = await readJson<RechargeRequest>(request);
-  return json(await rechargeWallet(body));
+  return json(await rechargeWallet(body, user));
 });

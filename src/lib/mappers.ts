@@ -175,6 +175,8 @@ export function toTransaction(row: DbTransaction): Transaction {
     method: row.method ?? undefined,
     tripId: row.tripId ?? undefined,
     failureReason: row.failureReason ?? undefined,
+    processedByUserId: row.processedByUserId ?? undefined,
+    processedByName: row.processedByName ?? undefined,
     createdAt: iso(row.createdAt),
   };
 }

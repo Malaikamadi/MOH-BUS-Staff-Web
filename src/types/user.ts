@@ -1,6 +1,14 @@
 import type { AccountStatus, ID, ISODateString } from "./common";
 
-export type UserRole = "passenger" | "admin";
+export type UserRole = "passenger" | "admin" | "super_admin" | "officer";
+
+export interface OperatorDraft {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: Extract<UserRole, "admin" | "officer">;
+}
 
 export interface User {
   id: ID;

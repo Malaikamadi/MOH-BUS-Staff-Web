@@ -1,6 +1,7 @@
 export * from "./api";
 export * from "./common";
 export * from "./fleet";
+export * from "./office";
 export * from "./passenger";
 export * from "./report";
 export * from "./transaction";

@@ -152,7 +152,10 @@ export async function getWallet(accountId: string) {
   };
 }
 
-export async function rechargeWallet(request: RechargeRequest) {
+export async function rechargeWallet(
+  request: RechargeRequest,
+  actor?: { id: string; name: string; role: string },
+) {
   if (request.amount < 5) throw new HttpError(400, "The minimum recharge is Le 5.00.");
   const account = await prisma.transportAccount.findUnique({
     where: { id: request.accountId },
@@ -161,7 +164,20 @@ export async function rechargeWallet(request: RechargeRequest) {
   if (!account) throw new HttpError(404, "Wallet not found.");
   if (account.status !== "active") throw new HttpError(400, "This wallet cannot accept a recharge.");
 
+  if (actor?.role === "passenger") {
+    const own = await prisma.passenger.findUnique({ where: { userId: actor.id } });
+    if (!own || own.id !== account.passengerId) {
+      throw new HttpError(403, "You can only recharge your own staff wallet.");
+    }
+  }
+
   const now = new Date();
+  const officeDesk = actor?.role === "officer" || actor?.role === "super_admin" || actor?.role === "admin";
+  const methodLabel = request.method.replace("_", " ");
+  const description = officeDesk
+    ? `Head office top-up · Youyi Building · ${actor?.name ?? "Clerk"}${request.note ? ` · ${request.note}` : ""}`
+    : `Wallet recharge · ${methodLabel}`;
+
   const result = await prisma.$transaction(async (tx) => {
     const updated = await tx.transportAccount.update({
       where: { id: account.id },
@@ -175,11 +191,13 @@ export async function rechargeWallet(request: RechargeRequest) {
         passengerId: account.passengerId,
         passengerName: account.passenger.name,
         type: "recharge",
-        description: `Wallet recharge · ${request.method.replace("_", " ")}`,
+        description,
         amount: request.amount,
         balanceAfter: updated.balance,
         status: "successful",
         method: request.method,
+        processedByUserId: officeDesk ? actor?.id : undefined,
+        processedByName: officeDesk ? actor?.name : undefined,
         createdAt: now,
       },
     });

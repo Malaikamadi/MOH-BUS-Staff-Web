@@ -33,6 +33,15 @@ function iso(daysAgo: number, hour = 9, minute = 0) {
 
 export const users: User[] = [
   {
+    id: "usr_super",
+    name: "Dr Fatmata Koroma",
+    email: "super@health.gov.sl",
+    phone: "+232 76 100 001",
+    role: "super_admin",
+    status: "active",
+    createdAt: iso(500),
+  },
+  {
     id: "usr_admin",
     name: "Ibrahim Koroma",
     email: "admin@health.gov.sl",
@@ -40,6 +49,15 @@ export const users: User[] = [
     role: "admin",
     status: "active",
     createdAt: iso(420),
+  },
+  {
+    id: "usr_officer",
+    name: "Kadiatu Turay",
+    email: "office@health.gov.sl",
+    phone: "+232 76 220 018",
+    role: "officer",
+    status: "active",
+    createdAt: iso(200),
   },
   {
     id: "usr_staff",

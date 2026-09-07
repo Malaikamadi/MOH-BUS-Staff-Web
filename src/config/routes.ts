@@ -22,6 +22,17 @@ export const routes = {
     settings: "/admin/settings",
   },
 
+  superAdmin: {
+    dashboard: "/super-admin",
+    operators: "/super-admin/operators",
+    recharges: "/super-admin/recharges",
+  },
+
+  office: {
+    dashboard: "/office",
+    history: "/office/history",
+  },
+
   portal: {
     dashboard: "/portal",
     qr: "/portal/qr",
@@ -34,3 +45,5 @@ export const routes = {
 
 export const ADMIN_ROUTE_PREFIX = "/admin";
 export const PORTAL_ROUTE_PREFIX = "/portal";
+export const SUPER_ADMIN_ROUTE_PREFIX = "/super-admin";
+export const OFFICE_ROUTE_PREFIX = "/office";
