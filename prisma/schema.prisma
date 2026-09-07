@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  passenger
+  admin
+}
+
+enum AccountStatus {
+  active
+  suspended
+  pending
+  closed
+}
+
+enum EntityStatus {
+  active
+  inactive
+}
+
+enum BusStatus {
+  active
+  maintenance
+  inactive
+}
+
+enum QrStatus {
+  active
+  disabled
+  replaced
+}
+
+enum FareCategory {
+  staff
+}
+
+enum TransactionType {
+  recharge
+  fare
+  refund
+  adjustment
+}
+
+enum TransactionStatus {
+  successful
+  pending
+  failed
+  reversed
+}
+
+enum PaymentMethodId {
+  card
+  bank_transfer
+  ussd
+  mobile_money
+  agent
+}
+
+enum TripStatus {
+  completed
+  in_progress
+  failed
+  cancelled
+}
+
+model User {
+  id           String        @id
+  name         String
+  email        String        @unique
+  phone        String
+  passwordHash String
+  role         UserRole
+  status       AccountStatus
+  createdAt    DateTime
+  passenger    Passenger?
+  sessions     Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Passenger {
+  id            String              @id
+  userId        String              @unique
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  phone         String
+  staffNumber   String              @unique
+  designation   String
+  facility      String
+  status        AccountStatus
+  ninMasked     String
+  address       String?
+  city          String?
+  createdAt     DateTime
+  account       TransportAccount?
+  qrAccounts    QrAccount[]
+  transactions  LedgerTransaction[]
+  trips         Trip[]
+
+  @@index([status])
+  @@map("passengers")
+}
+
+model TransportAccount {
+  id            String              @id
+  passengerId   String              @unique
+  passenger     Passenger           @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  accountNumber String              @unique
+  balance       Decimal             @db.Decimal(12, 2)
+  status        AccountStatus
+  createdAt     DateTime
+  updatedAt     DateTime
+  qrAccounts    QrAccount[]
+  transactions  LedgerTransaction[]
+  trips         Trip[]
+
+  @@map("transport_accounts")
+}
+
+model QrAccount {
+  id             String            @id
+  accountId      String
+  account        TransportAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  passengerId    String
+  passenger      Passenger         @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  passengerName  String
+  secureToken    String            @unique
+  status         QrStatus
+  createdAt      DateTime
+  revokedAt      DateTime?
+  replacedByQrId String?
+  lastScannedAt  DateTime?
+  scanCount      Int               @default(0)
+  trips          Trip[]
+
+  @@index([passengerId])
+  @@map("qr_accounts")
+}
+
+model TransportRoute {
+  id          String         @id
+  code        String         @unique
+  name        String
+  origin      String
+  destination String
+  stops       Json
+  distanceKm  Decimal        @db.Decimal(8, 1)
+  fare        Decimal        @db.Decimal(12, 2)
+  status      EntityStatus
+  createdAt   DateTime
+  fares       Fare[]
+  buses       Bus[]
+  trips       Trip[]
+
+  @@map("routes")
+}
+
+model Fare {
+  id            String         @id
+  name          String
+  routeId       String
+  route         TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  routeName     String
+  category      FareCategory
+  amount        Decimal        @db.Decimal(12, 2)
+  status        EntityStatus
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  @@index([routeId, status])
+  @@map("fares")
+}
+
+model Conductor {
+  id             String             @id
+  staffNumber    String             @unique
+  name           String
+  contact        String
+  email          String?
+  passwordHash   String
+  busId          String?
+  busNumber      String?
+  status         AccountStatus
+  tripsProcessed Int                @default(0)
+  lastActiveAt   DateTime?
+  createdAt      DateTime
+  sessions       ConductorSession[]
+  trips          Trip[]
+
+  @@map("conductors")
+}
+
+model ConductorSession {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  conductorId String
+  conductor   Conductor @relation(fields: [conductorId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([conductorId])
+  @@map("conductor_sessions")
+}
+
+model Bus {
+  id                 String          @id
+  busNumber          String          @unique
+  registrationNumber String          @unique
+  routeId            String?
+  route              TransportRoute? @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  routeName          String?
+  conductorId        String?
+  conductorName      String?
+  capacity           Int
+  status             BusStatus
+  createdAt          DateTime
+  trips              Trip[]
+
+  @@map("buses")
+}
+
+model LedgerTransaction {
+  id            String            @id
+  reference     String            @unique
+  accountId     String
+  account       TransportAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  passengerId   String
+  passenger     Passenger         @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  passengerName String
+  type          TransactionType
+  description   String
+  amount        Decimal           @db.Decimal(12, 2)
+  balanceAfter  Decimal           @db.Decimal(12, 2)
+  status        TransactionStatus
+  method        PaymentMethodId?
+  tripId        String?
+  failureReason String?
+  createdAt     DateTime
+
+  @@index([passengerId, createdAt])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model Trip {
+  id              String           @id
+  reference       String           @unique
+  passengerId     String
+  passenger       Passenger        @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  passengerName   String
+  accountId       String
+  account         TransportAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  qrId            String
+  qr              QrAccount        @relation(fields: [qrId], references: [id], onDelete: Cascade)
+  busId           String
+  bus             Bus              @relation(fields: [busId], references: [id], onDelete: Restrict)
+  busNumber       String
+  conductorId     String
+  conductor       Conductor        @relation(fields: [conductorId], references: [id], onDelete: Restrict)
+  conductorName   String
+  routeId         String
+  route           TransportRoute   @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  routeName       String
+  boardingStop    String
+  destinationStop String
+  fare            Decimal          @db.Decimal(12, 2)
+  status          TripStatus
+  failureReason   String?
+  createdAt       DateTime
+
+  @@index([passengerId, createdAt])
+  @@index([conductorId, createdAt])
+  @@index([createdAt])
+  @@map("trips")
+}
