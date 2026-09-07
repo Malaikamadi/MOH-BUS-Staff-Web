@@ -8,7 +8,7 @@ export function OPTIONS() {
   return options();
 }
 
-export const GET = withRoles(["officer", "super_admin"], async (request) => {
+export const GET = withRoles(walletDeskRoles, async (request) => {
   const query = new URL(request.url).searchParams.get("q") ?? "";
   return json(await searchOfficeStaff(query));
 });

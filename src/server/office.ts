@@ -80,7 +80,7 @@ export async function getOfficeDashboard(actorId: string, role: string): Promise
   const today = todayBounds();
   const where: Prisma.LedgerTransactionWhereInput = {
     type: "recharge",
-    processedByUserId: role === "super_admin" ? { not: null } : actorId,
+    processedByUserId: role === "officer" ? actorId : { not: null },
     createdAt: today,
   };
 
@@ -95,7 +95,7 @@ export async function getOfficeDashboard(actorId: string, role: string): Promise
     prisma.ledgerTransaction.findMany({
       where: {
         type: "recharge",
-        processedByUserId: role === "super_admin" ? { not: null } : actorId,
+        processedByUserId: role === "officer" ? actorId : { not: null },
       },
       orderBy: { createdAt: "desc" },
       take: 8,
@@ -119,7 +119,7 @@ export async function listOfficeRecharges(params: QueryParams, actorId: string, 
   const search = params.search?.trim();
   const where: Prisma.LedgerTransactionWhereInput = {
     type: "recharge",
-    processedByUserId: role === "super_admin" ? { not: null } : actorId,
+    processedByUserId: role === "officer" ? actorId : { not: null },
     ...(createdAt ? { createdAt } : {}),
     ...(search
       ? {

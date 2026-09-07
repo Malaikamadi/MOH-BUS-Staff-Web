@@ -40,6 +40,7 @@ interface NavItem {
 const adminNav: NavItem[] = [
   { label: "Dashboard", href: routes.admin.dashboard, icon: LayoutDashboard },
   { label: "Staff", href: routes.admin.passengers, icon: Users },
+  { label: "Recharge wallet", href: routes.admin.recharge, icon: Wallet },
   { label: "QR accounts", href: routes.admin.qrAccounts, icon: QrCode },
   { label: "Conductors", href: routes.admin.conductors, icon: UserRound },
   { label: "Buses", href: routes.admin.buses, icon: BusFront },
