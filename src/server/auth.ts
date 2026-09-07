@@ -1,16 +1,12 @@
 import { prisma } from "@/lib/db";
 import { newId, newSessionToken, newToken } from "@/lib/ids";
 import { toPassengerDetail, toUser } from "@/lib/mappers";
+import { hashNin, maskNin } from "@/lib/nin";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { HttpError } from "@/server/errors";
 import type { AuthSession, LoginCredentials, RegistrationPayload, User } from "@/types";
 
 const SESSION_MS = 8 * 60 * 60 * 1000;
-
-function maskNin(nin: string) {
-  const digits = nin.replace(/\D/g, "");
-  return `${"•".repeat(8)}${digits.slice(-4) || "0000"}`;
-}
 
 async function issueSession(user: User): Promise<AuthSession> {
   const expiresAt = new Date(Date.now() + SESSION_MS);
@@ -63,6 +59,10 @@ export async function registerStaff(payload: RegistrationPayload): Promise<AuthS
   const qrId = newId("qr");
   const passwordHash = await hashPassword(payload.password);
   const digits = payload.staffNumber.replace(/\D/g, "").slice(-6) || "000000";
+  const ninHash = hashNin(payload.nin);
+  if (!ninHash) throw new HttpError(400, "Enter a valid national identity number.");
+  const ninTaken = await prisma.passenger.findUnique({ where: { ninHash } });
+  if (ninTaken) throw new HttpError(409, "This national identity number is already enrolled.");
 
   await prisma.$transaction([
     prisma.user.create({
@@ -89,6 +89,7 @@ export async function registerStaff(payload: RegistrationPayload): Promise<AuthS
         facility: payload.facility,
         status: "active",
         ninMasked: maskNin(payload.nin),
+        ninHash,
         createdAt: now,
       },
     }),

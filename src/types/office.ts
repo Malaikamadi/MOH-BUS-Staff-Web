@@ -7,6 +7,7 @@ export interface OfficeStaffMatch {
   passenger: Passenger;
   account: TransportAccount;
   qrStatus: QRStatus;
+  ninMasked: string;
 }
 
 export interface OfficeDashboard {

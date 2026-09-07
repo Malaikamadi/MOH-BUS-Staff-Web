@@ -14,6 +14,7 @@ import {
   trips,
   users,
 } from "../src/data/store";
+import { demoNinForStaffNumber, hashNin, maskNin } from "../src/lib/nin";
 import { DEMO_PASSWORD } from "../src/lib/password";
 
 const prisma = new PrismaClient();
@@ -74,7 +75,8 @@ async function main() {
         designation: row.designation,
         facility: row.facility,
         status: row.status,
-        ninMasked: identity?.ninMasked ?? "••••••••••••",
+        ninMasked: identity?.ninMasked ?? maskNin(demoNinForStaffNumber(row.staffNumber)),
+        ninHash: hashNin(demoNinForStaffNumber(row.staffNumber)) ?? undefined,
         address: identity?.address,
         city: identity?.city,
         createdAt: new Date(row.createdAt),

@@ -6,3 +6,10 @@ export const demoCredentials = {
   staff: { email: "staff@health.gov.sl", password: "Password123" },
   conductor: { staffNumber: "CND-001", password: "Password123" },
 } as const;
+
+/** Aminata Sesay — use this NIN at the Youyi Building desk in local demo. */
+export const demoOfficeLookup = {
+  nin: "900004182",
+  qr: "MOHSL1.qrt_7f3a9c2e1b8d4f6a9e0c1d2b3a4e5f67",
+  staff: "Aminata Sesay",
+} as const;

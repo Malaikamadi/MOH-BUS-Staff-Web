@@ -111,6 +111,7 @@ model Passenger {
   facility      String
   status        AccountStatus
   ninMasked     String
+  ninHash       String?             @unique
   address       String?
   city          String?
   createdAt     DateTime

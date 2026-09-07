@@ -7,62 +7,102 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { appConfig } from "@/config/app";
+import { demoOfficeLookup } from "@/data/demo";
 import { getOfficeDashboard, processOfficeRecharge, searchOfficeStaff } from "@/services/office.service";
 import type { OfficeDashboard, OfficeRechargeRequest, OfficeStaffMatch } from "@/types";
 import { formatCurrency } from "@/utils/format";
 
 const presets = [20, 50, 100, 200, 500];
+const steps = ["Lookup", "Profile", "Amount", "Payment", "Confirm", "Done"] as const;
+type Step = (typeof steps)[number];
+
+const methods: { id: OfficeRechargeRequest["method"]; label: string }[] = [
+  { id: "agent", label: "Cash at Youyi Building" },
+  { id: "mobile_money", label: "Orange Money / Afrimoney" },
+  { id: "bank_transfer", label: "Bank transfer confirmed" },
+];
 
 export default function OfficeDeskPage() {
+  const [step, setStep] = useState<Step>("Lookup");
   const [query, setQuery] = useState("");
   const [matches, setMatches] = useState<OfficeStaffMatch[]>([]);
   const [selected, setSelected] = useState<OfficeStaffMatch | null>(null);
   const [dashboard, setDashboard] = useState<OfficeDashboard | null>(null);
-  const [amount, setAmount] = useState(50);
+  const [amount, setAmount] = useState(100);
   const [custom, setCustom] = useState("");
   const [method, setMethod] = useState<OfficeRechargeRequest["method"]>("agent");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
-  const [receipt, setReceipt] = useState<{ balance: number; amount: number } | null>(null);
+  const [searched, setSearched] = useState(false);
+  const [receipt, setReceipt] = useState<{ previous: number; amount: number; balance: number } | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     void getOfficeDashboard().then(setDashboard);
   }, []);
 
-  useEffect(() => {
-    if (query.trim().length < 2) {
-      setMatches([]);
-      return;
-    }
-    const timer = setTimeout(() => {
-      void searchOfficeStaff(query).then(setMatches);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [query]);
-
   const selectedAmount = Number(custom) > 0 ? Number(custom) : amount;
+  const methodLabel = methods.find((item) => item.id === method)?.label ?? method;
+
+  async function lookup(event: React.FormEvent) {
+    event.preventDefault();
+    setError("");
+    setSearched(true);
+    setReceipt(null);
+    const results = await searchOfficeStaff(query);
+    setMatches(results);
+    if (results.length === 1) {
+      setSelected(results[0]);
+      setStep("Profile");
+    } else {
+      setSelected(null);
+    }
+  }
+
+  function openProfile(row: OfficeStaffMatch) {
+    setSelected(row);
+    setStep("Profile");
+    setError("");
+    setReceipt(null);
+  }
+
+  function resetDesk() {
+    setStep("Lookup");
+    setQuery("");
+    setMatches([]);
+    setSelected(null);
+    setAmount(100);
+    setCustom("");
+    setMethod("agent");
+    setNote("");
+    setError("");
+    setSearched(false);
+    setReceipt(null);
+  }
 
   async function confirm() {
     if (!selected) return;
     setLoading(true);
     setError("");
     try {
+      const previous = selected.account.balance;
       const result = await processOfficeRecharge({
         accountId: selected.account.id,
         amount: selectedAmount,
         method,
         note: note.trim() || undefined,
       });
-      setReceipt({ balance: result.balance, amount: selectedAmount });
+      setReceipt({ previous, amount: selectedAmount, balance: result.balance });
       setSelected({
         ...selected,
         account: { ...selected.account, balance: result.balance },
         passenger: { ...selected.passenger, walletBalance: result.balance },
       });
       setDashboard(await getOfficeDashboard());
+      setStep("Done");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "The top-up could not be completed.");
+      setError(err instanceof Error ? err.message : "Payment could not be confirmed.");
     } finally {
       setLoading(false);
     }
@@ -72,7 +112,7 @@ export default function OfficeDeskPage() {
     <div className="space-y-6">
       <PageHeader
         title="Head office recharge desk"
-        description="Look up a ministry staff member at Youyi Building and credit their transport wallet. The QR code does not change."
+        description="Staff come to Youyi Building, present their NIN or QR, and you credit the wallet. The QR never changes."
       />
 
       {dashboard && (
@@ -100,138 +140,230 @@ export default function OfficeDeskPage() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
+      <ol className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-ink-400">
+        {steps.map((item) => (
+          <li key={item} className={item === step ? "text-brand-700" : ""}>
+            {item}
+          </li>
+        ))}
+      </ol>
+
+      {step === "Lookup" && (
         <Card>
           <CardHeader>
-            <CardTitle>Find staff</CardTitle>
+            <CardTitle>Staff presents NIN or QR</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(event) => void lookup(event)} className="space-y-4">
+              <Input
+                label="National identity number or QR code"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Type the NIN, or paste the QR payload"
+                autoFocus
+              />
+              {appConfig.api.showDemoAccounts && (
+                <p className="text-xs text-foreground-muted">
+                  Demo: Aminata Sesay NIN {demoOfficeLookup.nin}, or QR {demoOfficeLookup.qr}
+                </p>
+              )}
+              {searched && matches.length === 0 && (
+                <p className="text-sm text-danger-600">No staff account matches that NIN or QR.</p>
+              )}
+              {matches.length > 1 && (
+                <div className="space-y-2">
+                  {matches.map((row) => (
+                    <button
+                      key={row.passenger.id}
+                      type="button"
+                      onClick={() => openProfile(row)}
+                      className="w-full rounded-xl border border-border-subtle px-4 py-3 text-left hover:bg-surface-muted"
+                    >
+                      <span className="block text-sm font-semibold text-ink-900">{row.passenger.name}</span>
+                      <span className="text-xs text-foreground-muted">
+                        {row.passenger.staffNumber} · NIN {row.ninMasked} · {formatCurrency(row.account.balance)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Button type="submit">Search</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === "Profile" && selected && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Staff profile</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Input
-              label="Name, staff number, email or phone"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setReceipt(null);
-              }}
-              placeholder="Start typing at least 2 characters"
-            />
-            <div className="space-y-2">
-              {matches.map((row) => (
+            <div className="rounded-xl bg-surface-muted p-4">
+              <p className="font-display text-xl font-semibold text-ink-900">{selected.passenger.name}</p>
+              <p className="mt-1 text-sm text-foreground-muted">
+                {selected.passenger.staffNumber} · {selected.passenger.designation}
+              </p>
+              <p className="text-sm text-foreground-muted">{selected.passenger.facility}</p>
+              <p className="mt-3 text-sm">
+                NIN <span className="font-medium text-ink-800">{selected.ninMasked}</span>
+              </p>
+              <p className="mt-2 text-sm">
+                Current balance{" "}
+                <strong className="font-display text-lg text-ink-900" data-numeric>
+                  {formatCurrency(selected.account.balance)}
+                </strong>
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <StatusBadge status={selected.account.status} />
+                <StatusBadge status={selected.qrStatus} />
+              </div>
+            </div>
+            {selected.account.status !== "active" ? (
+              <p className="text-sm text-danger-600">This wallet cannot accept a recharge.</p>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={resetDesk}>
+                  Search again
+                </Button>
+                <Button onClick={() => setStep("Amount")}>Recharge</Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {step === "Amount" && selected && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Enter amount</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-foreground-muted">
+              {selected.passenger.name} · current balance {formatCurrency(selected.account.balance)}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {presets.map((value) => (
                 <button
-                  key={row.passenger.id}
+                  key={value}
                   type="button"
                   onClick={() => {
-                    setSelected(row);
-                    setReceipt(null);
-                    setError("");
+                    setAmount(value);
+                    setCustom("");
                   }}
-                  className={`w-full rounded-xl border px-4 py-3 text-left ${
-                    selected?.passenger.id === row.passenger.id
-                      ? "border-brand-600 bg-brand-50"
-                      : "border-border-subtle hover:bg-surface-muted"
+                  className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${
+                    amount === value && !custom
+                      ? "border-brand-600 bg-brand-50 text-brand-800"
+                      : "border-border-strong"
                   }`}
                 >
-                  <span className="block text-sm font-semibold text-ink-900">{row.passenger.name}</span>
-                  <span className="text-xs text-foreground-muted">
-                    {row.passenger.staffNumber} · {row.passenger.facility} · {formatCurrency(row.account.balance)}
-                  </span>
+                  {formatCurrency(value, { whole: true })}
                 </button>
               ))}
-              {query.trim().length >= 2 && matches.length === 0 && (
-                <p className="text-sm text-foreground-muted">No staff match that search.</p>
-              )}
+            </div>
+            <Input
+              label="Custom amount"
+              type="number"
+              min={5}
+              value={custom}
+              onChange={(event) => setCustom(event.target.value)}
+            />
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setStep("Profile")}>
+                Back
+              </Button>
+              <Button disabled={selectedAmount < 5} onClick={() => setStep("Payment")}>
+                Continue
+              </Button>
             </div>
           </CardContent>
         </Card>
+      )}
 
+      {step === "Payment" && selected && (
         <Card>
           <CardHeader>
-            <CardTitle>{selected ? "Credit wallet" : "Select a staff member"}</CardTitle>
+            <CardTitle>Select payment method</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!selected && (
-              <p className="text-sm text-foreground-muted">
-                Search on the left, then take cash or assisted mobile money and credit the account.
-              </p>
-            )}
-            {selected && (
-              <>
-                <div className="rounded-xl bg-surface-muted p-4">
-                  <p className="font-semibold text-ink-900">{selected.passenger.name}</p>
-                  <p className="text-sm text-foreground-muted">
-                    {selected.passenger.staffNumber} · {selected.account.accountNumber}
-                  </p>
-                  <p className="mt-2 text-sm">
-                    Current balance{" "}
-                    <strong data-numeric>{formatCurrency(selected.account.balance)}</strong>
-                  </p>
-                  <div className="mt-2">
-                    <StatusBadge status={selected.account.status} />
-                  </div>
-                </div>
-
-                {selected.account.status !== "active" ? (
-                  <p className="text-sm text-danger-600">This wallet cannot accept a recharge.</p>
-                ) : (
-                  <>
-                    <div className="flex flex-wrap gap-2">
-                      {presets.map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => {
-                            setAmount(value);
-                            setCustom("");
-                          }}
-                          className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${
-                            amount === value && !custom
-                              ? "border-brand-600 bg-brand-50 text-brand-800"
-                              : "border-border-strong"
-                          }`}
-                        >
-                          {formatCurrency(value, { whole: true })}
-                        </button>
-                      ))}
-                    </div>
-                    <Input
-                      label="Custom amount"
-                      type="number"
-                      min={5}
-                      value={custom}
-                      onChange={(event) => setCustom(event.target.value)}
-                    />
-                    <Select
-                      label="How was payment taken?"
-                      value={method}
-                      onChange={(event) => setMethod(event.target.value as OfficeRechargeRequest["method"])}
-                    >
-                      <option value="agent">Cash at Youyi Building</option>
-                      <option value="mobile_money">Orange Money / Afrimoney assisted</option>
-                      <option value="bank_transfer">Bank transfer confirmed</option>
-                    </Select>
-                    <Input
-                      label="Receipt note (optional)"
-                      value={note}
-                      onChange={(event) => setNote(event.target.value)}
-                      placeholder="Receipt number or teller reference"
-                    />
-                    {error && <p className="text-sm text-danger-500">{error}</p>}
-                    {receipt && (
-                      <p className="text-sm text-success-700">
-                        Credited {formatCurrency(receipt.amount)}. New balance{" "}
-                        <strong data-numeric>{formatCurrency(receipt.balance)}</strong>.
-                      </p>
-                    )}
-                    <Button loading={loading} onClick={() => void confirm()}>
-                      Credit {formatCurrency(selectedAmount)}
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
+            <p className="text-sm">
+              Recharging <strong data-numeric>{formatCurrency(selectedAmount)}</strong> for {selected.passenger.name}.
+            </p>
+            <Select
+              label="Payment method"
+              value={method}
+              onChange={(event) => setMethod(event.target.value as OfficeRechargeRequest["method"])}
+            >
+              {methods.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </Select>
+            <Input
+              label="Receipt note (optional)"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Receipt number or teller reference"
+            />
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setStep("Amount")}>
+                Back
+              </Button>
+              <Button onClick={() => setStep("Confirm")}>Continue</Button>
+            </div>
           </CardContent>
         </Card>
-      </div>
+      )}
+
+      {step === "Confirm" && selected && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Confirm payment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="space-y-1 text-sm text-ink-700">
+              <li>
+                Staff <strong>{selected.passenger.name}</strong>
+              </li>
+              <li>
+                Amount <strong data-numeric>{formatCurrency(selectedAmount)}</strong>
+              </li>
+              <li>Method {methodLabel}</li>
+              <li>
+                Balance after{" "}
+                <strong data-numeric>{formatCurrency(selected.account.balance + selectedAmount)}</strong>
+              </li>
+            </ul>
+            {error && <p className="text-sm text-danger-500">{error}</p>}
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setStep("Payment")}>
+                Back
+              </Button>
+              <Button loading={loading} onClick={() => void confirm()}>
+                Payment confirmed
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === "Done" && selected && receipt && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Wallet updated</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="font-display text-xl font-semibold text-success-700">Payment confirmed</p>
+            <p className="text-sm text-ink-700">
+              {selected.passenger.name}: {formatCurrency(receipt.previous)} + {formatCurrency(receipt.amount)} ={" "}
+              <strong data-numeric>{formatCurrency(receipt.balance)}</strong>
+            </p>
+            <p className="text-sm font-medium text-ink-900">Same QR remains active. It is not replaced after a recharge.</p>
+            <Button onClick={resetDesk}>Serve next staff member</Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
